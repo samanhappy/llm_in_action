@@ -10,24 +10,28 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 dotenv.load_dotenv()
 
-# 1. Load, chunk and index.
-# 1.1. Load the documents.
+# Indexing: Load
 loader = PyPDFLoader("https://arxiv.org/pdf/2402.16480.pdf")
 docs = loader.load()
 print(len(docs))
 print(docs[0].page_content)
 
-# 1.2. Chunk the documents.
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+# Indexing: Split
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=200, add_start_index=True
+)
 splits = text_splitter.split_documents(docs)
 print(len(splits))
 print(splits[0].page_content)
+print(splits[1].metadata)
 
-# # 1.3. Index the chunks.
+# Indexing: Store
 # vectorstore = Chroma.from_documents(documents=splits, embedding=OpenAIEmbeddings())
 
-# # Retrieve and generate using the relevant snippets of the blog.
+# # Retrieve
 # retriever = vectorstore.as_retriever()
+
+# Generate
 # prompt = hub.pull("rlm/rag-prompt")
 # llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
