@@ -7,10 +7,10 @@ RAG 技术是一种用额外数据增强大型语言模型知识的方法。尽�
 - **索引**：从源数据中加载数据并进行索引，通常离线进行，并且支持动态更新，分为：
   1. **加载**：根据不同的数据源选择合适的加载器，加载数据得到文档。
   2. **切分**：使用文本切分器将文档切分成更小的片段，使用小片段一方面可以更好地匹配用户问题，同时也可以适应模型的有限上下文窗口。
-  3. **存储**：存储和索引切分片段，以便在检索时能够快速找到相关的数据，通常使用 Embeddings 模型和向量数据库（VectorStore）来完成。
+  3. **存储**：存储和索引切片，以便在检索时能够快速找到相关的数据，通常使用 Embeddings 模型和向量数据库（VectorStore）来完成。
 ![index_diagram](../static/img/rag_indexing.png)
 - **检索与生成**：实际的 RAG 链，接收用户问题，从索引中检索相关数据，基于问题和这些数据生成结果，分为：
-  1. **检索**：给定用户输入，使用检索器从存储中检索相关的切分片段。
+  1. **检索**：给定用户输入，使用检索器从存储中检索相关的切片。
   2. **生成**：使用包括问题和检索到的数据的提示调用 LLM 来生成答案。
 ![index_diagram](../static/img/rag_retrieval_generation.png)
 ## 基础流程
@@ -39,7 +39,69 @@ from dotenv import load_dotenv
 dotenv.load_dotenv()
 ```
 ### 索引：加载数据
+LangChain 提供了多种加载器，可以帮助我们从不同的数据源中加载数据，包括常见的 CSV、HTML、JSON、Markdown、PDF等。基本上你能想到的数据源（甚至语雀）都有相应的加载器，详细的加载器列表可以参考[官方文档](https://python.langchain.com/docs/integrations/document_loaders)。
+
+下面我们以加载一个简单的 PDF 文件为例：
+```shell
+pip install pypdf
+```
+```python
+from langchain_community.document_loaders import PyPDFLoader
+
+loader = PyPDFLoader("https://arxiv.org/pdf/2402.16480.pdf")
+docs = loader.load()
+print(len(docs))
+print(docs[0].page_content)
+```
+在上面的代码中，我们使用了 `PyPDFLoader` 来加载一个 PDF 文件，然后打印出了文档的长度和第一页的内容。这里的 `docs` 是一个列表，因为一个加载器可能加载出多个文档，比如一个 PDF 文件可能包含多个页面。
+
+`PyPDFLoader` 默认不处理图片，如果需要提取图片，可以借助 `rapidocr-onnxruntime` 库：
+```shell
+pip install rapidocr-onnxruntime
+```
+```python
+loader = PyPDFLoader("https://arxiv.org/pdf/2402.16480.pdf", extract_images=True)
+```
+
+除了适用于常见格式的 `PyPDFLoader`，LangChain 还提供了其他针对不同类型 PDF 文件的加载器，比如 `MathpixPDFLoader`、`UnstructuredPDFLoader`等具体实现，可以根据实际情况选择，详细介绍可以参考[官方文档](https://python.langchain.com/docs/modules/data_connection/document_loaders/pdf)。
+
 ### 索引：切分数据
+切分器是将文档切分成更小的片段，以便于更好地匹配用户问题，同时也可以适应模型的有限上下文窗口。LangChain 提供了多种切分器，包括基于段落、句子、词等不同粒度的切分器，详细的切分器列表可以参考[官方文档](https://python.langchain.com/docs/modules/data_connection/document_transformers/)。
+
+下面我们以切分器为例，展示如何使用 `RecursiveCharacterTextSplitter` 切分文档：
+```python
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=200, add_start_index=True
+)
+splits = text_splitter.split_documents(docs)
+print(len(splits))
+print(splits[0].page_content)
+print(splits[0].metadata)
+```
+在上面的代码中，我们使用了 `RecursiveCharacterTextSplitter` 来切分文档，然后打印出了切分后的切片数量、第一个切片的内容和元数据。这里的 `splits` 是一个列表，因为一个切分器可能切分出多个片段。
+
+在使用 `RecursiveCharacterTextSplitter` 时，我们可以使用 `chunk_size` 来控制切分的粒度，`chunk_overlap` 来控制切片的重叠，重叠的部分可以保证切片之间的上下文连贯性。此外，我们还可以使用 `add_start_index` 来控制是否在切片的元数据中添加起始索引。
+
+如果要使用 `RecursiveCharacterTextSplitter` 来切分代码，可以通过结合 `Language` 类来实现：
+```python
+from langchain_text_splitters import (
+    Language,
+    RecursiveCharacterTextSplitter,
+)
+
+python_splitter = RecursiveCharacterTextSplitter.from_language(
+    language=Language.PYTHON, chunk_size=50, chunk_overlap=0
+)
+```
+
+除了适用于一般文本的 `RecursiveCharacterTextSplitter`，LangChain 还提供了其他针对不同类型文档或者不同切分方式的切分器，比如：
+- `MarkdownHeaderTextSplitter` 用于通过指定标题切分 Markdown 文件
+- `RecursiveJsonSplitter` 用于切分 JSON 文件
+- `CharacterTextSplitter` 用于通过指定分隔符切分文本
+
+关于文档切分器的详细介绍可以参考[官方文档](https://python.langchain.com/docs/modules/data_connection/document_transformers/text_splitter)。
 ### 索引：存储数据
 ### 检索
 ### 生成
