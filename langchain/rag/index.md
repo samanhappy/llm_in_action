@@ -82,7 +82,7 @@ print(splits[0].metadata)
 ```
 在上面的代码中，我们使用了 `RecursiveCharacterTextSplitter` 来切分文档，然后打印出了切分后的切片数量、第一个切片的内容和元数据。这里的 `splits` 是一个列表，因为一个切分器可能切分出多个片段。
 
-在使用 `RecursiveCharacterTextSplitter` 时，我们可以使用 `chunk_size` 来控制切分的粒度，`chunk_overlap` 来控制切片的重叠，重叠的部分可以保证切片之间的上下文连贯性。此外，我们还可以使用 `add_start_index` 来控制是否在切片的元数据中添加起始索引。
+在使用 `RecursiveCharacterTextSplitter` 时，我们可以使用 `chunk_size` 来控制切分的粒度，`chunk_overlap` 来控制切片的重叠，重叠的部分可以保证切片之间的上下文连贯性。此外，我们还可以使用 `add_start_index` 来控制是否在切片的元数据中添加起始索引。这里推荐一个网站 [https://chunkviz.up.railway.app/](https://chunkviz.up.railway.app/)，可以帮助我们直观地理解切分的效果。
 
 如果要使用 `RecursiveCharacterTextSplitter` 来切分代码，可以通过结合 `Language` 类来实现：
 ```python
