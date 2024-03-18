@@ -53,7 +53,7 @@ docs = loader.load()
 print(len(docs))
 print(docs[0].page_content)
 ```
-在上面的代码中，我们使用了 `PyPDFLoader` 来加载一个 PDF 文件，然后打印出了文档的长度和第一页的内容。这里的 `docs` 是一个列表，因为一个加载器可能加载出多个文档，比如一个 PDF 文件可能包含多个页面。
+在上面的代码中，我们使用了 `PyPDFLoader` 来加载一个 PDF 文件，然后打印出了文档的长度和第一页的内容。
 
 `PyPDFLoader` 默认不处理图片，如果需要提取图片，可以借助 `rapidocr-onnxruntime` 库：
 ```shell
@@ -80,9 +80,10 @@ print(len(splits))
 print(splits[0].page_content)
 print(splits[0].metadata)
 ```
-在上面的代码中，我们使用了 `RecursiveCharacterTextSplitter` 来切分文档，然后打印出了切分后的切片数量、第一个切片的内容和元数据。这里的 `splits` 是一个列表，因为一个切分器可能切分出多个片段。
+在上面的代码中，我们使用了 `RecursiveCharacterTextSplitter` 来切分文档，然后打印出了切分后的切片数量、第一个切片的内容和元数据。
 
 在使用 `RecursiveCharacterTextSplitter` 时，我们可以使用 `chunk_size` 来控制切分的粒度，`chunk_overlap` 来控制切片的重叠，重叠的部分可以保证切片之间的上下文连贯性。此外，我们还可以使用 `add_start_index` 来控制是否在切片的元数据中添加起始索引。这里推荐一个网站 [https://chunkviz.up.railway.app/](https://chunkviz.up.railway.app/)，可以帮助我们直观地理解切分的效果。
+![index_diagram](../static/img/chunkviz.png)
 
 如果要使用 `RecursiveCharacterTextSplitter` 来切分代码，可以通过结合 `Language` 类来实现：
 ```python
@@ -102,6 +103,37 @@ python_splitter = RecursiveCharacterTextSplitter.from_language(
 - `CharacterTextSplitter` 用于通过指定分隔符切分文本
 
 关于文档切分器的详细介绍可以参考[官方文档](https://python.langchain.com/docs/modules/data_connection/document_transformers/text_splitter)。
+### 索引：嵌入数据
+嵌入器是将文档切片转换成向量（embeddings），以便存储到向量数据库（VectorStore）中。Embeddings 的本质是将文本映射到一个高维空间中的向量，使得语义相似的文本在空间中的距离更近。LangChain 提供了多种嵌入器，包括 OpenAI, Cohere, Hugging Face 等提供的多种模型，详细的嵌入器列表可以参考[官方文档](https://python.langchain.com/docs/integrations/text_embedding/)。
+
+下面我们以嵌入器为例，展示如何使用 `OpenAIEmbeddings` 嵌入文档切片：
+```python
+from langchain_openai import OpenAIEmbeddings
+
+embedding = OpenAIEmbeddings()
+embedded_query = embedding.embed_query("What was the name mentioned in the conversation?")
+print(embedded_query[:5])
+```
+```
+[0.005384807424727807, -0.0005522561790177147, 0.03896066510130955, -0.002939867294003909, -0.008987877434176603]
+```
+在上面的代码中，我们使用了 `OpenAIEmbeddings` 来嵌入查询，然后打印出了嵌入后的前 5 个元素。
+
+LangChain 中的 Embeddings 接口提供了 `embed_query` 和 `embed_documents` 两个方法，分别用于嵌入查询和文档切片。因为不同的嵌入器可能会针对文档和查询提供不同的实现。
 ### 索引：存储数据
+存储器是将嵌入后的 embeddings 存储到向量数据库（VectorStore）中，以便在检索时能够快速找到相关的数据。使用 embeddings 和向量数据库可以实现语义匹配，这也是 RAG 和传统关键词匹配的区别。最常见的相似度计算方法是使用余弦相似度。
+![index_diagram](../static/img/vector_stores.jpeg)
+LangChain 提供了多种存储器，常见开源可本地部署的有 Chroma、Faiss、Lance 等，详细的存储器列表可以参考[官方文档](https://python.langchain.com/docs/integrations/vectorstores/)。
+
+下面我们以存储器为例，展示如何使用 `ChromaVectorStore` 存储嵌入后的 embeddings：
+```python
+from langchainhub.vectorstores import ChromaVectorStore
+
+vectorstore = Chroma.from_documents(documents=splits, embedding=embedding)
+query = "如何在开源项目中使用 ChatGPT ?"
+docs = vectorstore.similarity_search(query)
+print(docs[0].page_content)
+```
+在上面的代码中，我们使用了 `Chroma` 来存储嵌入后的 embeddings，然后使用 `similarity_search` 方法通过查询文本检索数据。除了 `similarity_search`，我们还可以使用 `similarity_search_by_vector` 直接通过向量检索数据。
 ### 检索
 ### 生成

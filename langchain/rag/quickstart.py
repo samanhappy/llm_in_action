@@ -25,8 +25,16 @@ print(len(splits))
 print(splits[0].page_content)
 print(splits[1].metadata)
 
+# Indexing: Embed
+embedding = OpenAIEmbeddings()
+# embedded_query = embedding.embed_query("What was the name mentioned in the conversation?")
+# print(embedded_query[:5])
+
 # Indexing: Store
-# vectorstore = Chroma.from_documents(documents=splits, embedding=OpenAIEmbeddings())
+vectorstore = Chroma.from_documents(documents=splits, embedding=embedding)
+query = "如何在开源项目中使用 ChatGPT ?"
+docs = vectorstore.similarity_search(query)
+print(docs[0].page_content)
 
 # # Retrieve
 # retriever = vectorstore.as_retriever()
