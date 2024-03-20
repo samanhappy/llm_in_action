@@ -134,7 +134,7 @@ query = "如何在开源项目中使用 ChatGPT ?"
 docs = vectorstore.similarity_search(query)
 print(docs[0].page_content)
 ```
-在上面的代码中，我们使用了 `Chroma` 来存储嵌入后的 embeddings，然后使用 `similarity_search` 方法通过查询文本检索数据。除了 `similarity_search`，我们还可以使用 `similarity_search_by_vector` 直接通过向量检索数据。
+在上面的代码中，我们使用了 `Chroma` 来存储嵌入后的 embeddings，然后使用 `similarity_search` 方法通过查询文本检索数据。这里需要留意的是，虽然原始的 PDF 文档是英文，而代码中的查询是中文，但依然可以查询到相关文档，这就是语义搜索的魅力。除了 `similarity_search`，我们还可以使用 `similarity_search_by_vector` 直接通过向量检索数据。
 ### 检索
 检索器根据用户输入，输出相关的文档列表。LangChain 内置了多种检索器，最常见和简单的是基于向量数据库的检索器，详细的检索器列表可以参考[官方文档](https://python.langchain.com/docs/modules/data_connection/retrievers/#advanced-retrieval-types)。不同的检索器适合不同的场景，可以参照官方提供的对比表格进行选择：
 | 名称 | 索引类型 | 使用LLM | 使用时机 | 描述 |
