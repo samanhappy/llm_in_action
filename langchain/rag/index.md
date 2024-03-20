@@ -136,4 +136,28 @@ print(docs[0].page_content)
 ```
 在上面的代码中，我们使用了 `Chroma` 来存储嵌入后的 embeddings，然后使用 `similarity_search` 方法通过查询文本检索数据。除了 `similarity_search`，我们还可以使用 `similarity_search_by_vector` 直接通过向量检索数据。
 ### 检索
+检索器根据用户输入，输出相关的文档列表。LangChain 内置了多种检索器，最常见和简单的是基于向量数据库的检索器，详细的检索器列表可以参考[官方文档](https://python.langchain.com/docs/modules/data_connection/retrievers/#advanced-retrieval-types)。不同的检索器适合不同的场景，可以参照官方提供的对比表格进行选择：
+| 名称 | 索引类型 | 使用LLM | 使用时机 | 描述 |
+|---------------------------|------------------------------|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Vectorstore](https://python.langchain.com/docs/modules/data_connection/retrievers/vectorstore) | 向量存储 | 否 | 如果你刚开始，正在寻找快速简单的方法。 | 这是获取开始的最简单方法。它涉及为每个文本创建嵌入。 |
+| [ParentDocument](https://python.langchain.com/docs/modules/data_connection/retrievers/parent_document_retriever) | 向量存储 + 文档存储 | 否 | 如果你的页面有很多更小的独立信息块，它们最好单独索引，但最好一起检索。 | 这涉及为每个文档索引多个块。然后你在嵌入空间找到最相似的块，但检索整个父文档并返回（而不是单个块）。 |
+| [Multi Vector](https://python.langchain.com/docs/modules/data_connection/retrievers/multi_vector) | 向量存储 + 文档存储 | 有时在索引期间 | 如果你能够从文档中提取出你认为比文本本身更有索引价值的信息。 | 这涉及为每个文档创建多个向量。每个向量的创建方式有很多种 - 例如包括文本的摘要和假设性问题。 |
+| [Self Query](https://python.langchain.com/docs/modules/data_connection/retrievers/self_query) | 向量存储 | 是 | 如果用户提出的问题更适合根据元数据而不是与文本的相似性来检索文档。 | 这使用LLM将用户输入转换为两件事：（1）用于语义查找的字符串，（2）与之相关的元数据过滤器。这很有用，因为很多时候问题是关于文档的元数据（而不是内容本身）。 |
+| [Contextual Compression](https://python.langchain.com/docs/modules/data_connection/retrievers/contextual_compression) | 任何 | 有时 | 如果你发现检索到的文档包含太多无关信息，分散了LLM的注意力。 | 这在另一个检索器之上放置了一个后处理步骤，只提取检索到的文档中最相关的信息。这可以使用嵌入或LLM来完成。 |
+| [Time-Weighted Vectorstore](https://python.langchain.com/docs/modules/data_connection/retrievers/time_weighted_vectorstore) | 向量存储 | 否 | 如果你有关联时间戳的文档，并希望检索最新的文档。 | 这根据语义相似性（如正常向量检索）和最近性（查看索引文档的时间戳）来检索文档。 |
+| [Multi-Query Retriever](https://python.langchain.com/docs/modules/data_connection/retrievers/MultiQueryRetriever) | 任何 | 是 | 如果用户提出的问题复杂，需要多个独立的信息块来回答。 | 这使用LLM从原始问题生成多个查询。当原始问题需要关于多个主题的信息块才能得到正确回答时，这很有用。通过生成多个查询，我们可以为每个查询获取文档。 |
+| [Ensemble](https://python.langchain.com/docs/modules/data_connection/retrievers/ensemble) | 任何 | 否 | 如果你有多重检索方法，并希望尝试将它们结合。 | 这从多个检索器获取文档，然后将它们组合。 |
+| [Long-Context Reorder](https://python.langchain.com/docs/modules/data_connection/retrievers/long_context_reorder) | 任何 | 否 | 如果你使用长上下文模型，并发现它没有关注检索文档中间的信息。 | 这从底层检索器获取文档，然后重新排序，使最相似的文档位于开始和结束处。这很有用，因为已经显示，对于更长的上下文模型，它们有时不会关注上下文窗口中间的信息。 |
+
+除了内置检索器，LangChain 还支持集成多种外部检索器，详细列表可以参考[官方文档](https://python.langchain.com/docs/integrations/retrievers/)。此外，LangChain 还支持自定义检索器，示例代码可以参考[官方文档](https://python.langchain.com/docs/modules/data_connection/retrievers/#custom-retriever)。
+
+下面我们展示如何使用 `VectorStoreRetriever` 检索数据：
+```python
+retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+query = "如何在开源项目中使用 ChatGPT ?"
+docs = retriever.invoke(query)
+print(len(docs))
+print(docs[0].page_content)
+```
+在上面的代码中，我们基于 `vectorstore` 创建了一个检索器，并且指定 `search_type="similarity"` 表示使用相似度检索，，`search_kwargs={"k": 6}` 表示最多返回 6 个结果，然后调用 `invoke` 方法检索数据。
 ### 生成

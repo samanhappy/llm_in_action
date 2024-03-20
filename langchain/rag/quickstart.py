@@ -13,17 +13,17 @@ dotenv.load_dotenv()
 # Indexing: Load
 loader = PyPDFLoader("https://arxiv.org/pdf/2402.16480.pdf")
 docs = loader.load()
-print(len(docs))
-print(docs[0].page_content)
+# print(len(docs))
+# print(docs[0].page_content)
 
 # Indexing: Split
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200, add_start_index=True
 )
 splits = text_splitter.split_documents(docs)
-print(len(splits))
-print(splits[0].page_content)
-print(splits[1].metadata)
+# print(len(splits))
+# print(splits[0].page_content)
+# print(splits[1].metadata)
 
 # Indexing: Embed
 embedding = OpenAIEmbeddings()
@@ -32,12 +32,16 @@ embedding = OpenAIEmbeddings()
 
 # Indexing: Store
 vectorstore = Chroma.from_documents(documents=splits, embedding=embedding)
-query = "如何在开源项目中使用 ChatGPT ?"
-docs = vectorstore.similarity_search(query)
-print(docs[0].page_content)
+# query = "如何在开源项目中使用 ChatGPT ?"
+# docs = vectorstore.similarity_search(query)
+# print(docs[0].page_content)
 
 # # Retrieve
-# retriever = vectorstore.as_retriever()
+retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
+query = "如何在开源项目中使用 ChatGPT ?"
+docs = retriever.invoke(query)
+print(len(docs))
+print(docs[0].page_content)
 
 # Generate
 # prompt = hub.pull("rlm/rag-prompt")
