@@ -38,28 +38,32 @@ vectorstore = Chroma.from_documents(documents=splits, embedding=embedding)
 
 # # Retrieve
 retriever = vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 6})
-query = "如何在开源项目中使用 ChatGPT ?"
-docs = retriever.invoke(query)
-print(len(docs))
-print(docs[0].page_content)
+# query = "如何在开源项目中使用 ChatGPT ?"
+# docs = retriever.invoke(query)
+# print(len(docs))
+# print(docs[0].page_content)
 
 # Generate
-# prompt = hub.pull("rlm/rag-prompt")
-# llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+# 从 Hub 中加载 RAG Prompt
+prompt = hub.pull("rlm/rag-prompt")
+# 使用 OpenAI 的 gpt-3.5-turbo 模型
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
+# 格式化文档
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
 
-# def format_docs(docs):
-#     return "\n\n".join(doc.page_content for doc in docs)
+# 构建 chain
+rag_chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
 
-
-# rag_chain = (
-#     {"context": retriever | format_docs, "question": RunnablePassthrough()}
-#     | prompt
-#     | llm
-#     | StrOutputParser()
-# )
-
-# rag_chain.invoke("What is Task Decomposition?")
+# 以流的方式生成答案
+for chunk in rag_chain.stream("如何在开源项目中使用 ChatGPT ?"):
+    print(chunk, end="", flush=True)
 
 # # cleanup
 # vectorstore.delete_collection()

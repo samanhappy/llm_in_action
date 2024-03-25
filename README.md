@@ -9,7 +9,7 @@
 ## 实战案例
 
 ### LangChain
-- [基于 Langchain 构建一个生产级 RAG 聊天机器人](./langchain/rag/index.md)
+- [# 基于 Langchain 构建一个生产级 RAG 聊天机器人（一）：核心流程](./langchain/rag/core.md)
 
 ### 其他
 - 手把手教你本地部署开源 Text-to-SQL 工具：Vanna

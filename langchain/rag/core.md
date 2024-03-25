@@ -1,4 +1,4 @@
-# 基于 Langchain 构建一个生产级 RAG 聊天机器人
+# 基于 Langchain 构建一个生产级 RAG 聊天机器人（一）：核心流程
 在人工智能的浪潮下，由大型语言模型（LLM）赋能的问答（Q&A）聊天机器人正成为企业与用户互动的新常态。为了让聊天机器人具备真正的智能，满足用户多样化的提问需求，检索增强生成（RAG）技术应运而生。本文将深入剖析 RAG 技术的原理，并展示如何借助 LangChain 打造一个高效能的生产级聊天应用。
 ## RAG 概述
 RAG 技术是一种用额外数据增强大型语言模型知识的方法。尽管 LLM 能够对众多主题进行推理，但其知识仅限于训练时使用的特定时间点之前的公开数据。因此，为了让聊天机器人能够对私有数据或截止日期后引入的数据进行推理，我们需要用特定的信息来增强模型的知识。这个过程就是检索增强生成（RAG）。
@@ -161,3 +161,43 @@ print(docs[0].page_content)
 ```
 在上面的代码中，我们基于 `vectorstore` 创建了一个检索器，并且指定 `search_type="similarity"` 表示使用相似度检索，，`search_kwargs={"k": 6}` 表示最多返回 6 个结果，然后调用 `invoke` 方法检索数据。
 ### 生成
+生成就是基于用户的问题和检索到的数据，拼装进提示，然后调用 LLM 生成答案。
+下面我们展示如何使用 OpenAI 的 gpt-3.5-turbo 模型构造 chain 生成答案：
+```python
+from langchain_openai import ChatOpenAI
+from langchain import hub
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
+# 从 Hub 中加载 RAG Prompt
+prompt = hub.pull("rlm/rag-prompt")
+# 使用 OpenAI 的 gpt-3.5-turbo 模型
+llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+
+# 格式化文档
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
+
+# 构建 chain
+rag_chain = (
+    {"context": retriever | format_docs, "question": RunnablePassthrough()}
+    | prompt
+    | llm
+    | StrOutputParser()
+)
+
+# 以流的方式生成答案
+for chunk in rag_chain.stream("What is Task Decomposition?"):
+    print(chunk, end="", flush=True)
+```
+在上面的代码中，我们使用了 `ChatOpenAI` 来加载 OpenAI 的 gpt-3.5-turbo 模型，然后构建了一个 chain，其中包含了检索、格式化、提示和生成等步骤。最后以流的方式生成答案。代码中涉及到的关键概念有：
+- `hub.pull`：从 Hub 中加载 RAG Prompt，[Hub](https://smith.langchain.com/hub) 是 LangChain 提供的一个中心化的模型仓库，可以方便地获取和分享模型。
+- `|`：管道操作符，用于连接多个 Runnable。基于 LangChain Expression Language (LCEL) 的语法，可以方便地构建复杂的 chain，类似于 Unix 管道。LCEL 提供了非常多的特性，包括异步、批量执行、并发执行、流式、重试和回退等，在我看来就是 LangChain 的精髓所在，详细介绍可以参考[官方文档](https://python.langchain.com/docs/expression_language/)。
+- `RunnablePassthrough`：一个简单的 Runnable，用于传递输入
+- `StrOutputParser`：一个简单的 OutputParser，用于将输出转换成字符串
+- `stream`：以流的方式生成答案
+
+LangChain 针对 LLM 的调用提供了两种不同的抽象：`ChatModel` 和 `LLM`。前者接收聊天消息列表返回单个聊天消息，比如我们上面代码中使用的 `ChatOpenAI`；后者接收一个字符串返回一个字符串。这两种抽象可以根据实际情况选择，详细对比和介绍可以参考[官方文档](https://python.langchain.com/docs/modules/model_io/quick_start)。
+
+## 总结
+好了，到这里我们已经完成了一个简单的 RAG 聊天机器人的构建，可以看出 LangChain 提供了非常多的组件和特性，从而帮助我们快速构建出适应各种场景的智能应用。限于篇幅，这篇文章就先到这里，在后续文章中我们将继续深入探讨搭建一个生产级 RAG 聊天机器人所需要的更多高级特性，比如多模型集成、多语言支持、多轮对话、实时更新等，欢迎关注，敬请期待！
