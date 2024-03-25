@@ -10,7 +10,7 @@
 
 ### LangChain
 
-- [# 基于 Langchain 构建一个生产级 RAG 聊天机器人（一）：核心流程](./langchain/rag/core.md)
+- [基于 Langchain 构建一个生产级 RAG 聊天机器人（一）：核心流程](./langchain/rag/core.md)
 
 ### 其他
 
