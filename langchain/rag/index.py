@@ -99,7 +99,7 @@ answer1 = rag_chain_with_source.invoke(
 print(answer1)
 chat_history.extend([HumanMessage(content=question1), AIMessage(content=answer1['answer'])])
 
-question2 = "我刚才问了什么?"
+question2 = "我们刚才聊了什么?"
 answer2 = rag_chain_with_source.invoke(
     {"question": question2, "chat_history": chat_history}
 )
