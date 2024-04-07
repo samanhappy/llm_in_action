@@ -2,10 +2,13 @@ import dotenv
 from langchain import hub
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import Chroma
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import RunnablePassthrough, RunnableParallel
+from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -58,9 +61,11 @@ prompt = ChatPromptTemplate.from_messages(
 # 使用 OpenAI 的 gpt-3.5-turbo 模型
 llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 
+
 # 格式化文档
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
+
 
 # 构建 chain
 rag_chain = (
@@ -72,20 +77,36 @@ rag_chain = (
     | StrOutputParser()
 )
 
+store = {}
+
+
+def get_session_history(session_id: str) -> BaseChatMessageHistory:
+    if session_id not in store:
+        store[session_id] = ChatMessageHistory()
+    return store[session_id]
+
+
+rag_chain_with_history = RunnableWithMessageHistory(
+    runnable=rag_chain,
+    get_session_history=get_session_history,
+    input_messages_key="question",
+    history_messages_key="chat_history",
+)
+
+
 def contextualized_question(input: dict):
-        return input["question"]
+    return input["question"]
+
 
 # 返回源文档
 rag_chain_with_source = RunnableParallel(
     {
         "context": contextualized_question | retriever,
         "question": lambda x: x["question"],
-        "chat_history": lambda x: x["chat_history"],
     }
-).assign(answer=rag_chain)
+).assign(answer=rag_chain_with_history)
 
 # 保存对话历史
-chat_history = []
 
 # 以流的方式生成答案
 # for chunk in rag_chain_with_source.stream("如何在开源项目中使用 ChatGPT ?"):
@@ -94,19 +115,17 @@ chat_history = []
 # 一次性生成答案
 question1 = "如何在开源项目中使用 ChatGPT ?"
 answer1 = rag_chain_with_source.invoke(
-    {"question": question1, "chat_history": chat_history}
+    {"question": question1}, config={"configurable": {"session_id": "123"}}
 )
 print(answer1)
-chat_history.extend([HumanMessage(content=question1), AIMessage(content=answer1['answer'])])
 
 question2 = "我们刚才聊了什么?"
 answer2 = rag_chain_with_source.invoke(
-    {"question": question2, "chat_history": chat_history}
+    {"question": question2}, config={"configurable": {"session_id": "123"}}
 )
 print(answer2)
-chat_history.extend([HumanMessage(content=question2), AIMessage(content=answer2['answer'])])
 
-print(chat_history)
+print(store)
 
 # # cleanup
 # vectorstore.delete_collection()
