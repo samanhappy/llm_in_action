@@ -119,14 +119,14 @@ def main(load=True):
 
     # Get the contextualized question
     def contextualized_question(input: dict):
-      return input["question"]
+        return input["question"]
 
     # Create the runnable chain with source
     rag_chain_with_source = RunnableParallel(
-      {
-        "context": contextualized_question | retriever,
-        "question": lambda x: x["question"],
-      }
+        {
+            "context": contextualized_question | retriever,
+            "question": lambda x: x["question"],
+        }
     ).assign(answer=rag_chain_with_history)
 
     return rag_chain_with_source, history
