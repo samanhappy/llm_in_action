@@ -17,25 +17,38 @@ PDF_URL = os.getenv("PDF_URL")
 OPENAI_MODEL_NAME = os.getenv("OPENAI_MODEL_NAME")
 
 
-def main():
-    # Indexing: Load
-    loader = PyPDFLoader(PDF_URL)
-    docs = loader.load()
+def index(load=True):
+    vector_store = None
+    if load:
+        # Indexing: Load
+        loader = PyPDFLoader(PDF_URL)
+        docs = loader.load()
 
-    # Indexing: Split
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000, chunk_overlap=200, add_start_index=True
-    )
-    splits = text_splitter.split_documents(docs)
+        # Indexing: Split
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=1000, chunk_overlap=200, add_start_index=True
+        )
+        splits = text_splitter.split_documents(docs)
 
-    # Indexing: Embed
-    embedding = OpenAIEmbeddings()
+        # Indexing: Embed
+        embedding = OpenAIEmbeddings()
 
-    # Indexing: Store
-    vectorstore = Chroma.from_documents(documents=splits, embedding=embedding)
+        # Indexing: Store
+        vector_store = Chroma.from_documents(
+            documents=splits, embedding=embedding, persist_directory="./chroma_db"
+        )
+    else:
+        vector_store = Chroma(
+            persist_directory="./chroma_db", embedding_function=OpenAIEmbeddings()
+        )
+    return vector_store
+
+
+def main(load=True):
+    vector_store = index(load=load)
 
     # Retrieve
-    retriever = vectorstore.as_retriever(
+    retriever = vector_store.as_retriever(
         search_type="similarity", search_kwargs={"k": 6}
     )
 
@@ -63,12 +76,12 @@ def main():
         | StrOutputParser()
     )
 
-    store = {}
+    history_store = {}
 
     def get_session_history(session_id: str) -> BaseChatMessageHistory:
-        if session_id not in store:
-            store[session_id] = ChatMessageHistory()
-        return store[session_id]
+        if session_id not in history_store:
+            history_store[session_id] = ChatMessageHistory()
+        return history_store[session_id]
 
     rag_chain_with_history = RunnableWithMessageHistory(
         runnable=rag_chain,
@@ -87,9 +100,9 @@ def main():
         }
     ).assign(answer=rag_chain_with_history)
 
-    return rag_chain_with_source, store
+    return rag_chain_with_source, history_store
 
 
 if __name__ == "__main__":
-    rag_chain_with_source, store = main()
+    rag_chain_with_source, store = main(should_index=True)
     # Use rag_chain_with_source and store as needed

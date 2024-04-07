@@ -2,8 +2,13 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 from index import main
 
 
+def test_index():
+    vector_store = main(load=True)
+    assert vector_store is not None
+
+
 def test_main():
-    rag_chain_with_source, store = main()
+    rag_chain_with_source, history_store = main(load=False)
 
     question1 = "How to use ChatGPT in open source projects?"
     answer1 = rag_chain_with_source.invoke(
@@ -21,4 +26,4 @@ def test_main():
     assert isinstance(answer2, dict)
     assert "context" in answer2
 
-    print(store)
+    print(history_store)
