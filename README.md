@@ -11,6 +11,8 @@
 ### LangChain
 
 - [基于 Langchain 构建一个生产级 RAG 聊天机器人（一）：核心流程](./langchain/rag/core.md)
+- [LangChain 智能体初体验：使用工具](./langchain/agent/agent_tool.md)
+- [LangChain 智能体：使用自定义工具](./langchain/agent/agent_tool_custom.md)
 
 ### 其他
 
